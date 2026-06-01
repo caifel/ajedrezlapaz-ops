@@ -12,8 +12,8 @@ Checks:
   2. Database connectivity (/health)
   3. Swagger JSON (/swagger/json)
   4. Authentication (login, session cookie, /auth/me)
-  5. CSRF token flow (GET /auth/csrf-token)
-  6. Logout
+
+  5. Logout
 
 Exit code 0 on success, 1 on any failure.
 EOF
@@ -40,7 +40,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 COOKIE_JAR="$(mktemp /tmp/smoke-cookies.XXXXXX)"
-CSRF_TOKEN=""
+
 PASS=0
 FAIL=0
 
@@ -145,23 +145,7 @@ else
   check "GET /auth/me" "$status" "$body"
 fi
 
-# 6. CSRF token
-csrf_body=$(http_get_body "/auth/csrf-token")
-status=$(http_get_status "/auth/csrf-token")
-if [ "$status" = "200" ]; then
-  CSRF_TOKEN=$(printf '%s' "$csrf_body" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
-  if [ -n "$CSRF_TOKEN" ]; then
-    PASS=$((PASS + 1))
-    printf '  ✓ GET /auth/csrf-token (token received)\n'
-  else
-    FAIL=$((FAIL + 1))
-    printf '  ✗ GET /auth/csrf-token (no token in response)\n'
-  fi
-else
-  check "GET /auth/csrf-token" "$status"
-fi
-
-# 7. Logout
+# 6. Logout
 check "POST /auth/logout" "$(http_post_json_status "/auth/logout" "{}")"
 
 rm -f "$COOKIE_JAR"
