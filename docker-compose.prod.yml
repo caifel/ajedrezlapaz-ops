@@ -1,10 +1,25 @@
 name: ${PROJECT_NAME:-ajedrezlapaz}
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME:-ajedrezlapaz}-prod-redis
+    command: redis-server --save "" --appendonly no
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "${PROD_REDIS_PORT:-6379}:6379"
+    networks:
+      - webnet
+
   prod-web:
     build:
-      context: ${WEB_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/web}
-      dockerfile: /Users/mariomedrano/Projects/ajedrezlapaz/ops/docker/prod-web/Dockerfile
+      context: ${WEB_PATH:-../web}
+      dockerfile: Dockerfile
     image: ${PROJECT_NAME:-ajedrezlapaz}-prod-web
     container_name: ${PROJECT_NAME:-ajedrezlapaz}-prod-web
     environment:
@@ -18,8 +33,8 @@ services:
 
   prod-api:
     build:
-      context: ${API_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/api}
-      dockerfile: /Users/mariomedrano/Projects/ajedrezlapaz/ops/docker/prod-api/Dockerfile
+      context: ${API_PATH:-../api}
+      dockerfile: Dockerfile
     image: ${PROJECT_NAME:-ajedrezlapaz}-prod-api
     container_name: ${PROJECT_NAME:-ajedrezlapaz}-prod-api
     environment:
@@ -30,13 +45,16 @@ services:
       FRONTEND_URL: ${PROD_FRONTEND_URL:-http://localhost:8080}
       CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET is required}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET is required}
-      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required in production}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@support.ajedrezlapaz.com}
     ports:
       - "${PROD_API_PORT:-8081}:8081"
     volumes:
       - prod-api-sqlite-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - webnet
 
