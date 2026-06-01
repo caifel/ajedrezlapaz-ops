@@ -1,6 +1,21 @@
 name: ${PROJECT_NAME:-ajedrezlapaz}
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME:-ajedrezlapaz}-redis
+    command: redis-server --save "" --appendonly no
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1m
+      timeout: 3s
+      retries: 5
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - webnet
+
   ws:
     build:
       context: .
@@ -21,13 +36,17 @@ services:
       VISUAL: nvim
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     volumes:
-      - ${WEB_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/web}:/alp/web
-      - ${API_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/api}:/alp/api
-      - ${OPS_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/ops}:/alp/ops
-      - ${DOTFILES_PATH:-/Users/mariomedrano/Dev/.dotfiles}:/alp/dotfiles:ro
+      - ${WEB_PATH:-../web}:/alp/web
+      - ${API_PATH:-../api}:/alp/api
+      - ${OPS_PATH:-.}:/alp/ops
+      - ${DOTFILES_PATH:-${HOME}/Dev/.dotfiles}:/alp/dotfiles:ro
       - ws-home:/home/mario
       - ws-bun-cache:/home/mario/.bun/install/cache
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - webnet
 
@@ -52,7 +71,7 @@ services:
     ports:
       - "${DEV_WEB_PORT:-3000}:3000"
     volumes:
-      - ${WEB_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/web}:/alp/web
+      - ${WEB_PATH:-../web}:/alp/web
       - dev-web-node-modules:/alp/web/node_modules
       - dev-web-bun-cache:/home/mario/.bun/install/cache
     networks:
@@ -77,16 +96,19 @@ services:
       FRONTEND_URL: ${DEV_FRONTEND_URL:-http://localhost:3000}
       CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET is required}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET is required}
-      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@support.ajedrezlapaz.com}
     ports:
       - "${API_PORT:-4000}:4000"
     volumes:
-      - ${API_PATH:-/Users/mariomedrano/Projects/ajedrezlapaz/api}:/alp/api
+      - ${API_PATH:-../api}:/alp/api
       - dev-api-node-modules:/alp/api/node_modules
       - dev-api-bun-cache:/home/mario/.bun/install/cache
       - dev-api-sqlite-data:/alp/api/data
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - webnet
 

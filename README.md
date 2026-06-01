@@ -5,27 +5,30 @@ This folder defines the Docker containers for your web development workflow. Doc
 Your project source lives outside this folder:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/web
+../web
+../api
 ```
 
 This Docker setup lives here:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/ops
+../ops
 ```
 
 ## Containers
 
-The development Compose stack has three main containers:
+The development Compose stack has four main containers:
 
 - `ws`: your interactive development machine with terminal tools.
 - `dev-web`: runs the `ajedrezlapaz` Next.js app in development mode.
 - `dev-api`: runs the Elysia API with Bun, SQLite, and Redis (rate limiting).
+- `redis`: shared Redis service for API rate limiting, tokens, and local test runs.
 
 Production-like local testing lives in `docker-compose.prod.yml`:
 
 - `prod-web`: builds and runs the `ajedrezlapaz` Next.js app in production mode.
-- `prod-api`: builds and runs the Elysia API in production mode with Redis.
+- `prod-api`: builds and runs the Elysia API in production mode.
+- `redis`: shared Redis service for the production-like API container.
 
 All custom images use Debian Bookworm slim bases through `oven/bun:1-debian`.
 
@@ -34,9 +37,9 @@ All custom images use Debian Bookworm slim bases through `oven/bun:1-debian`.
 `ws` mounts your host projects directory:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/web -> /alp/web
-/Users/mariomedrano/Projects/ajedrezlapaz/api -> /alp/api
-/Users/mariomedrano/Projects/ajedrezlapaz/ops -> /alp/ops
+../web -> /alp/web
+../api -> /alp/api
+. -> /alp/ops
 ```
 
 So inside `ws`, your app path is:
@@ -48,13 +51,13 @@ So inside `ws`, your app path is:
 `dev-web` mounts only that app:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/web -> /alp/web
+../web -> /alp/web
 ```
 
 `dev-api` mounts your API project:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/api -> /alp/api
+../api -> /alp/api
 ```
 
 `prod-web` and `prod-api` use the app folders as Docker build contexts from the standalone `docker-compose.prod.yml` file.
@@ -62,6 +65,7 @@ So inside `ws`, your app path is:
 The result:
 
 - edit code in `ws`
+- run API tests from `ws` with Redis available, without starting `dev-api` or `dev-web`
 - run the integrated dev stack with `dev-web` and `dev-api` together
 - regenerate web API types from the fresh `dev-api` Swagger schema during startup
 - build/run production-like images with `prod-web` and `prod-api`
@@ -92,10 +96,10 @@ Runtime configuration lives in this folder:
 
 The image does not bake in shell, tmux, Neovim, or lazygit config files. Your dotfiles repo should own those.
 
-This setup uses your Linux workstation dotfiles fork from:
+This setup mounts your Linux workstation dotfiles fork from:
 
 ```txt
-/Users/mariomedrano/Dev/.dotfiles -> /alp/dotfiles
+${DOTFILES_PATH:-${HOME}/Dev/.dotfiles} -> /alp/dotfiles
 ```
 
 Inspect before symlinking:
@@ -119,10 +123,10 @@ The dotfiles originally came from Lazar Nikolov's macOS-oriented dotfiles, but t
 Deep Code settings are generated from your private dotfiles environment file:
 
 ```txt
-/Users/mariomedrano/Dev/.dotfiles/.env -> /home/mario/.deepcode/settings.json
+${DOTFILES_PATH}/.env -> /home/mario/.deepcode/settings.json
 ```
 
-Use `/Users/mariomedrano/Dev/.dotfiles/.env.example` as the template. The real `.env` is ignored by git.
+Use `${DOTFILES_PATH}/.env.example` as the template. The real `.env` is ignored by git.
 
 Then clone your project:
 
@@ -134,7 +138,7 @@ git clone git@github.com:YOUR_USER/ajedrezlapaz.git web
 That writes to:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/web
+../web
 ```
 
 For the API, clone or create:
@@ -147,7 +151,7 @@ git clone git@github.com:YOUR_USER/ajedrezlapaz-api.git api
 That writes to:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/api
+../api
 ```
 
 ## Quick Start
@@ -164,10 +168,19 @@ Start the independent workstation:
 make up-ws
 ```
 
+This starts `ws` and the lightweight `redis` service only. It does not start `dev-web` or `dev-api`.
+
 Open a shell in `ws`:
 
 ```sh
 make shell
+```
+
+Run API tests from `ws`:
+
+```sh
+cd /alp/api
+bun run test
 ```
 
 Start the integrated app stack:
@@ -274,7 +287,7 @@ http://localhost:3000
 `dev-api` expects an Elysia/Bun API at:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/api
+../api
 ```
 
 Inside the container, SQLite lives at:
@@ -291,23 +304,41 @@ SQLITE_PATH=/alp/api/data/app.db
 
 Drizzle derives `DATABASE_URL=file:${SQLITE_PATH}` internally.
 
-### Redis (rate limiting)
+### Redis
 
-Login rate limiting uses Redis for per-username and per-IP counters. Redis runs as a lightweight side process **inside the API container** — no separate service, no persistence.
+Redis runs as a separate Compose service using the official `redis:7-alpine` image. The API uses it for login rate limiting, verification tokens, and password reset tokens. The `ws` container depends on Redis so API tests can run from `ws` without starting the full dev app stack.
 
 | Config | Default | Purpose |
 |--------|---------|---------|
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
+| `REDIS_URL` | `redis://redis:6379` | Redis connection string inside Compose |
+| `REDIS_PORT` | `6379` | Host port for the dev Redis service |
+| `PROD_REDIS_PORT` | `6379` | Host port for the production-like Redis service |
 
-Startup order in the API container:
+Inside `ws`, inspect Redis with:
 
-```text
-redis-server (daemonized, no persistence) → readiness check (redis-cli ping) → db:migrate → bun start
+```sh
+redis-cli -h redis ping
 ```
 
-Redis is started with flags that disable persistence (`--save "" --appendonly no`) since rate-limit counters are ephemeral and expire automatically after the 15-minute window. No cleanup jobs needed.
+Redis is started with flags that disable persistence (`--save "" --appendonly no`) since the current data is ephemeral and expires automatically. No cleanup jobs needed.
+
+Redis uses `restart: unless-stopped` so Docker restarts it after an unexpected exit. Compose also defines a Redis healthcheck using `redis-cli ping`; the development stack checks once per minute, and the production-like stack checks every 10 seconds. `ws`, `dev-api`, and `prod-api` wait for Redis to become healthy before starting.
 
 When Redis is unreachable the API fails open: rate limiting is skipped, and only a 500ms artificial delay protects against brute-force attempts. Redis recovers automatically within 30 seconds of becoming available again.
+
+The API `/health` endpoint reports dependency status:
+
+```json
+{
+  "status": "ok",
+  "dependencies": {
+    "sqlite": "ok",
+    "redis": "ok"
+  }
+}
+```
+
+If Redis is down but SQLite is available, `/health` returns `200` with `status: "degraded"`. If SQLite is down, `/health` returns `503` with `status: "unhealthy"`.
 
 ### Environment Variables
 
@@ -317,7 +348,7 @@ All API runtime configuration is passed through the Docker Compose environment b
 |----------|----------|---------|---------|
 | `CSRF_SECRET` | Yes | — | HMAC key for CSRF token signing |
 | `INTERNAL_API_SECRET` | Yes | — | Shared secret for internal API communication (via X-Internal-Secret header) |
-| `REDIS_URL` | No | `redis://localhost:6379` | Redis connection for rate limiting and tokens |
+| `REDIS_URL` | No | `redis://redis:6379` | Redis connection for rate limiting and tokens inside Compose |
 | `RESEND_API_KEY` | Production only | — | Resend API key for email delivery (fails fast if missing in prod) |
 | `EMAIL_FROM` | No | `noreply@support.ajedrezlapaz.com` | Sender address for verification and reset emails |
 | `FRONTEND_URL` | Yes | — | Allowed CORS origin (comma-separated) |
@@ -369,10 +400,10 @@ make db-reset
 
 ## Production
 
-`prod-web` expects your Next.js app at:
+`prod-web` expects your Next.js app repo at:
 
 ```txt
-/Users/mariomedrano/Projects/ajedrezlapaz/web
+../web
 ```
 
 It uses Bun, runs the app build, and starts the Next.js standalone server with Bun on port `8080`.
@@ -422,7 +453,7 @@ make prod-api
 
 Development SQLite data is stored in the `dev-api-sqlite-data` Docker volume. Production API SQLite data is stored in the `prod-api-sqlite-data` Docker volume. If you run `docker compose down -v`, both local API databases are deleted.
 
-If Docker Desktop cannot mount `/Users/mariomedrano/Projects/ajedrezlapaz`, add that path to Docker Desktop file sharing settings, or change `WEB_PATH`, `API_PATH`, `OPS_PATH`, or `DOTFILES_PATH` in `.env`.
+If Docker Desktop cannot mount your project folders, add those paths to Docker Desktop file sharing settings, or change `WEB_PATH`, `API_PATH`, `OPS_PATH`, or `DOTFILES_PATH` in `.env`.
 
 The `ws-home` volume is mounted at `/home/mario` and keeps your dotfiles clone, shell history, LazyVim plugins, and tool state between rebuilds.
 

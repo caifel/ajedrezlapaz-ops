@@ -39,6 +39,7 @@ RUN apt-get update \
       openssh-client \
       openssl \
       pkg-config \
+      redis-tools \
       ripgrep \
       rsync \
       shellcheck \
