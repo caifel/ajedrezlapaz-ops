@@ -316,6 +316,7 @@ All API runtime configuration is passed through the Docker Compose environment b
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
 | `CSRF_SECRET` | Yes | — | HMAC key for CSRF token signing |
+| `INTERNAL_API_SECRET` | Yes | — | Shared secret for internal API communication (via X-Internal-Secret header) |
 | `REDIS_URL` | No | `redis://localhost:6379` | Redis connection for rate limiting and tokens |
 | `RESEND_API_KEY` | Production only | — | Resend API key for email delivery (fails fast if missing in prod) |
 | `EMAIL_FROM` | No | `noreply@support.ajedrezlapaz.com` | Sender address for verification and reset emails |
