@@ -16,18 +16,18 @@ services:
     networks:
       - webnet
 
-  prod-web:
+  prod-ui:
     build:
-      context: ${WEB_PATH:-../web}
+      context: ${UI_PATH:-../ui}
       dockerfile: Dockerfile
-    image: ${PROJECT_NAME:-ajedrezlapaz}-prod-web
-    container_name: ${PROJECT_NAME:-ajedrezlapaz}-prod-web
+    image: ${PROJECT_NAME:-ajedrezlapaz}-prod-ui
+    container_name: ${PROJECT_NAME:-ajedrezlapaz}-prod-ui
     environment:
       NODE_ENV: production
       API_URL: http://prod-api:8081
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET is required}
     ports:
-      - "${PROD_WEB_PORT:-8080}:8080"
+      - "${PROD_UI_PORT:-8080}:8080"
     networks:
       - webnet
 

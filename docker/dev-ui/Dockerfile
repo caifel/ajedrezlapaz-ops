@@ -14,11 +14,11 @@ RUN apt-get update \
       openssl \
     && usermod --login ${USERNAME} --move-home --home /home/${USERNAME} bun \
     && groupmod --new-name ${USERNAME} bun \
-    && mkdir -p /home/${USERNAME}/.bun/install/cache /alp/web/node_modules \
-    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME} /alp/web \
+    && mkdir -p /home/${USERNAME}/.bun/install/cache /alp/ui/node_modules \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME} /alp/ui \
     && rm -rf /var/lib/apt/lists/*
 
 USER ${USERNAME}
-WORKDIR /alp/web
+WORKDIR /alp/ui
 
 CMD ["bun", "--bun", "run", "dev", "--hostname", "0.0.0.0"]

@@ -1,7 +1,7 @@
 COMPOSE=docker compose
 COMPOSE_PROD=$(COMPOSE) -f docker-compose.prod.yml
 
-.PHONY: build up down logs up-ws down-ws shell logs-ws api-types api-types-check api-test db-migration-refresh db-migrate db-seed db-reset db-rebuild shell-api sqlite-api logs-api status clean prod prod-web prod-api smoke-test verify hooks-install help h
+.PHONY: build up down logs up-ws down-ws shell logs-ws api-types api-types-check api-test db-migration-refresh db-migrate db-seed db-reset db-rebuild shell-api sqlite-api logs-api status clean prod prod-ui prod-api smoke-test verify hooks-install help h
 
 # @group Build
 
@@ -24,21 +24,21 @@ logs-ws: ## [dev] Follow ws container logs.
 
 # @group Dev App
 
-up: ## [dev] Start dev-api + dev-web, then refresh web API types.
+up: ## [dev] Start dev-api + dev-ui, then refresh ui API types.
 	@scripts/sync-api-types.sh
 
-down: ## [dev] Stop and remove dev-web + dev-api while keeping named volumes.
-	$(COMPOSE) rm -sf dev-web dev-api
+down: ## [dev] Stop and remove dev-ui + dev-api while keeping named volumes.
+	$(COMPOSE) rm -sf dev-ui dev-api
 
-logs: ## [dev] Follow dev-web + dev-api logs.
-	$(COMPOSE) logs -f dev-api dev-web
+logs: ## [dev] Follow dev-ui + dev-api logs.
+	$(COMPOSE) logs -f dev-api dev-ui
 
 # @group API
 
-api-types: ## [dev] Regenerate web API types from the running dev-api Swagger schema.
+api-types: ## [dev] Regenerate ui API types from the running dev-api Swagger schema.
 	@scripts/sync-api-types.sh
 
-api-types-check: ## [dev] Check that generated web API types match the running dev-api Swagger schema.
+api-types-check: ## [dev] Check that generated ui API types match the running dev-api Swagger schema.
 	@scripts/sync-api-types.sh --check
 
 api-test: ## [dev] Run the API test suite inside dev-api.
@@ -93,11 +93,11 @@ clean: ## [dev] Stop all dev containers and delete development named volumes.
 
 # @group Production-Like Local Testing
 
-prod: ## [prod] Build and run production web and API containers.
-	$(COMPOSE_PROD) up --build prod-web prod-api
+prod: ## [prod] Build and run production ui and API containers.
+	$(COMPOSE_PROD) up --build prod-ui prod-api
 
-prod-web: ## [prod] Build and run the production web container.
-	$(COMPOSE_PROD) up --build prod-web
+prod-ui: ## [prod] Build and run the production ui container.
+	$(COMPOSE_PROD) up --build prod-ui
 
 prod-api: ## [prod] Build and run the production API container.
 	$(COMPOSE_PROD) up --build prod-api

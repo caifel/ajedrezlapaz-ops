@@ -2,18 +2,18 @@
 set -eu
 
 default_schema_url="http://dev-api:4000/swagger/json"
-default_web_dir="/alp/web"
-generated_types_path="src/lib/api/generated/schema.ts"
+default_ui_dir="/alp/ui"
+generated_types_path="src/api/generated/schema.ts"
 
 usage() {
   cat <<'EOF'
 usage: sync-api-types.sh [--check]
 
-Refresh the API-backed web types from the dev API Swagger schema.
+Refresh the API-backed ui types from the dev API Swagger schema.
 
-From the host, the script starts dev-api and dev-web if they are not
+From the host, the script starts dev-api and dev-ui if they are not
 already running, waits for dev-api Swagger through the Docker network,
-then generates or checks web/src/lib/api/generated/schema.ts.
+then generates or checks ui/src/api/generated/schema.ts.
 
   --check  Verify generated types are up to date without overwriting.
 EOF
@@ -47,14 +47,14 @@ render_types() {
     printf '%s\n' "// Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf '\n\n'
     bun run openapi-typescript "$spec"
-  } > "$generated"
+  } >"$generated"
 }
 
 normalize_generated_timestamp() {
   input="$1"
   output="$2"
 
-  sed 's/^\/\/ Generated: .*$/\/\/ Generated: <timestamp>/' "$input" > "$output"
+  sed 's/^\/\/ Generated: .*$/\/\/ Generated: <timestamp>/' "$input" >"$output"
 }
 
 check_generated_types() {
@@ -84,14 +84,14 @@ check_generated_types() {
 generate_types() {
   mode="$1"
   schema_url="$2"
-  web_dir="$3"
+  ui_dir="$3"
 
-  cd "$web_dir"
+  cd "$ui_dir"
   bun install
 
   spec="/tmp/ajedrezlapaz-openapi.json"
   generated="/tmp/ajedrezlapaz-schema.ts"
-  out="$web_dir/$generated_types_path"
+  out="$ui_dir/$generated_types_path"
 
   fetch_openapi_schema "$schema_url" "$spec"
   render_types "$schema_url" "$spec" "$generated"
@@ -125,17 +125,17 @@ wait_for_http() {
   exit 1
 }
 
-run_in_dev_web() {
+run_in_dev_ui() {
   mode="$1"
   schema_url="$2"
 
-  docker compose up -d dev-api dev-web
+  docker compose up -d dev-api dev-ui
 
-  docker compose exec -T dev-web sh -s -- \
-    --wait-for-http "$schema_url" "${WAIT_FOR_HTTP_ATTEMPTS:-60}" "${WAIT_FOR_HTTP_DELAY:-1}" < "$0"
+  docker compose exec -T dev-ui sh -s -- \
+    --wait-for-http "$schema_url" "${WAIT_FOR_HTTP_ATTEMPTS:-60}" "${WAIT_FOR_HTTP_DELAY:-1}" <"$0"
 
-  docker compose exec -T dev-web sh -s -- \
-    --generate "$mode" "$schema_url" "$default_web_dir" < "$0"
+  docker compose exec -T dev-ui sh -s -- \
+    --generate "$mode" "$schema_url" "$default_ui_dir" <"$0"
 }
 
 if [ "${1:-}" = "--generate" ]; then
@@ -154,17 +154,17 @@ check_only=false
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --check)
-      check_only=true
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      usage >&2
-      exit 2
-      ;;
+  --check)
+    check_only=true
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
   esac
   shift
 done
@@ -186,4 +186,4 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-run_in_dev_web "$mode" "$schema_url"
+run_in_dev_ui "$mode" "$schema_url"

@@ -94,10 +94,10 @@ highlight_description() {
     sed \
       -e "s/\\bworkstation\\b/${blue}workstation${reset}${white}/g" \
       -e "s/\\bws\\b/${blue}ws${reset}${white}/g" \
-      -e "s/\\bdev-web\\b/${blue}dev-web${reset}${white}/g" \
+      -e "s/\\bdev-ui\\b/${blue}dev-ui${reset}${white}/g" \
       -e "s/\\bdev-api\\b/${blue}dev-api${reset}${white}/g" \
       -e "s/\\bapi-types\\b/${blue}api-types${reset}${white}/g" \
-      -e "s/\\bprod-web\\b/${blue}prod-web${reset}${white}/g" \
+      -e "s/\\bprod-ui\\b/${blue}prod-ui${reset}${white}/g" \
       -e "s/\\bprod-api\\b/${blue}prod-api${reset}${white}/g" \
       -e "s/\\bSQLite\\b/${blue}SQLite${reset}${white}/g" \
       -e "s/\\bCompose\\b/${blue}Compose${reset}${white}/g"

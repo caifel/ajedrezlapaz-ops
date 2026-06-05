@@ -2,7 +2,7 @@
 set -eu
 
 # ── API Types Staleness Check ─────────────────────────────────────
-# Runs `make api-types-check` to verify that web/src/lib/api/generated/schema.ts
+# Runs `make api-types-check` to verify that web/src/api/generated/schema.ts
 # matches the current API Swagger schema.
 #
 # Requires Docker to be running and dev-api + dev-web containers reachable.

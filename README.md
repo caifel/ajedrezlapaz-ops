@@ -5,7 +5,7 @@ This folder defines the Docker containers for your web development workflow. Doc
 Your project source lives outside this folder:
 
 ```txt
-../web
+../ui
 ../api
 ```
 
@@ -20,13 +20,13 @@ This Docker setup lives here:
 The development Compose stack has four main containers:
 
 - `ws`: your interactive development machine with terminal tools.
-- `dev-web`: runs the `ajedrezlapaz` Next.js app in development mode.
+- `dev-ui`: runs the `ajedrezlapaz` Next.js app in development mode.
 - `dev-api`: runs the Elysia API with Bun, SQLite, and Redis (rate limiting).
 - `redis`: shared Redis service for API rate limiting, tokens, and local test runs.
 
 Production-like local testing lives in `docker-compose.prod.yml`:
 
-- `prod-web`: builds and runs the `ajedrezlapaz` Next.js app in production mode.
+- `prod-ui`: builds and runs the `ajedrezlapaz` Next.js app in production mode.
 - `prod-api`: builds and runs the Elysia API in production mode.
 - `redis`: shared Redis service for the production-like API container.
 
@@ -37,7 +37,7 @@ All custom images use Debian Bookworm slim bases through `oven/bun:1-debian`.
 `ws` mounts your host projects directory:
 
 ```txt
-../web -> /alp/web
+../ui -> /alp/ui
 ../api -> /alp/api
 . -> /alp/ops
 ```
@@ -45,13 +45,13 @@ All custom images use Debian Bookworm slim bases through `oven/bun:1-debian`.
 So inside `ws`, your app path is:
 
 ```txt
-/alp/web
+/alp/ui
 ```
 
-`dev-web` mounts only that app:
+`dev-ui` mounts only that app:
 
 ```txt
-../web -> /alp/web
+../ui -> /alp/ui
 ```
 
 `dev-api` mounts your API project:
@@ -60,21 +60,21 @@ So inside `ws`, your app path is:
 ../api -> /alp/api
 ```
 
-`prod-web` and `prod-api` use the app folders as Docker build contexts from the standalone `docker-compose.prod.yml` file.
+`prod-ui` and `prod-api` use the app folders as Docker build contexts from the standalone `docker-compose.prod.yml` file.
 
 The result:
 
 - edit code in `ws`
-- run API tests from `ws` with Redis available, without starting `dev-api` or `dev-web`
-- run the integrated dev stack with `dev-web` and `dev-api` together
-- regenerate web API types from the fresh `dev-api` Swagger schema during startup
-- build/run production-like images with `prod-web` and `prod-api`
+- run API tests from `ws` with Redis available, without starting `dev-api` or `dev-ui`
+- run the integrated dev stack with `dev-ui` and `dev-api` together
+- regenerate ui API types from the fresh `dev-api` Swagger schema during startup
+- build/run production-like images with `prod-ui` and `prod-api`
 
 Runtime configuration lives in this folder:
 
 - `ops/.env` is the local source of truth for Docker dev and production-like local runs.
 - `ops/.env.example` documents the required variables.
-- `web/.env.local` and `api/.env` are intentionally not used by the supported dev workflow.
+- `ui/.env.local` and `api/.env` are intentionally not used by the supported dev workflow.
 
 ## WS
 
@@ -132,13 +132,13 @@ Then clone your project:
 
 ```sh
 cd /alp
-git clone git@github.com:YOUR_USER/ajedrezlapaz.git web
+git clone git@github.com:YOUR_USER/ajedrezlapaz.git ui
 ```
 
 That writes to:
 
 ```txt
-../web
+../ui
 ```
 
 For the API, clone or create:
@@ -168,7 +168,7 @@ Start the independent workstation:
 make up-ws
 ```
 
-This starts `ws` and the lightweight `redis` service only. It does not start `dev-web` or `dev-api`.
+This starts `ws` and the lightweight `redis` service only. It does not start `dev-ui` or `dev-api`.
 
 Open a shell in `ws`:
 
@@ -192,9 +192,9 @@ make up
 This starts/recreates:
 
 - `dev-api`
-- `dev-web`
+- `dev-ui`
 
-It starts the pair if needed. `dev-api` applies pending migrations before serving, then the ops sync waits for Swagger from inside the Docker network and regenerates the web API types.
+It starts the pair if needed. `dev-api` applies pending migrations before serving, then the ops sync waits for Swagger from inside the Docker network and regenerates the ui API types.
 
 That Swagger/type sync is implemented in:
 
@@ -215,7 +215,7 @@ make api-types
 make api-types-check
 ```
 
-From inside `ws`, the same script can update the mounted web project as long as `dev-api` is already running:
+From inside `ws`, the same script can update the mounted ui project as long as `dev-api` is already running:
 
 ```sh
 /alp/ops/scripts/sync-api-types.sh
@@ -251,7 +251,7 @@ Inside the ws container:
 ```sh
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
-ssh-keygen -t ed25519 -C "mario@web-dev" -f ~/.ssh/id_ed25519_github
+ssh-keygen -t ed25519 -C "mario@ui-dev" -f ~/.ssh/id_ed25519_github
 cat > ~/.ssh/config <<'EOF'
 Host github.com
   HostName github.com
@@ -279,7 +279,7 @@ make up
 Open:
 
 ```txt
-http://localhost:3000
+http://localhost:5173
 ```
 
 ## Backend API
@@ -400,10 +400,10 @@ make db-reset
 
 ## Production
 
-`prod-web` expects your Next.js app repo at:
+`prod-ui` expects your Next.js app repo at:
 
 ```txt
-../web
+../ui
 ```
 
 It uses Bun, runs the app build, and starts the Next.js standalone server with Bun on port `8080`.
@@ -421,7 +421,7 @@ export default nextConfig;
 Run production:
 
 ```sh
-docker compose -f docker-compose.prod.yml up --build prod-web prod-api
+docker compose -f docker-compose.prod.yml up --build prod-ui prod-api
 ```
 
 Or:
@@ -437,10 +437,10 @@ http://localhost:8080
 http://localhost:8081
 ```
 
-Run only the web production container:
+Run only the ui production container:
 
 ```sh
-make prod-web
+make prod-ui
 ```
 
 Run only the API production container:
@@ -453,7 +453,7 @@ make prod-api
 
 Development SQLite data is stored in the `dev-api-sqlite-data` Docker volume. Production API SQLite data is stored in the `prod-api-sqlite-data` Docker volume. If you run `docker compose down -v`, both local API databases are deleted.
 
-If Docker Desktop cannot mount your project folders, add those paths to Docker Desktop file sharing settings, or change `WEB_PATH`, `API_PATH`, `OPS_PATH`, or `DOTFILES_PATH` in `.env`.
+If Docker Desktop cannot mount your project folders, add those paths to Docker Desktop file sharing settings, or change `UI_PATH`, `API_PATH`, `OPS_PATH`, or `DOTFILES_PATH` in `.env`.
 
 The `ws-home` volume is mounted at `/home/mario` and keeps your dotfiles clone, shell history, LazyVim plugins, and tool state between rebuilds.
 
