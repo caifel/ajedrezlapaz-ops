@@ -2,7 +2,7 @@
 set -euo pipefail
 
 mkdir -p "$HOME/.ssh" "$HOME/.config" "$HOME/.cache" "$HOME/.bun/install/cache" /alp
-chmod 700 "$HOME/.ssh"
+chmod 700 "$HOME/.ssh" 2>/dev/null || true
 
 DOTFILES_DIR="/alp/dotfiles"
 
@@ -58,6 +58,10 @@ render_deepcode_settings() {
 }
 
 render_deepcode_settings
+
+if [ ! -f "$HOME/.ssh/known_hosts" ]; then
+  ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
+fi
 
 if [ ! -f "$HOME/.gitconfig" ]; then
   cat > "$HOME/.gitconfig" <<'EOF'

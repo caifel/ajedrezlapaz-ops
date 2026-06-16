@@ -42,7 +42,7 @@ services:
       - ${API_PATH:-../api}:/alp/api
       - ${OPS_PATH:-.}:/alp/ops
       - ${DOTFILES_PATH:-${HOME}/Dev/.dotfiles}:/alp/dotfiles:ro
-      - ~/.ssh:/home/mario/.ssh:ro
+      - ${HOME}/.ssh:/home/mario/.ssh:ro
       - ws-home:/home/mario
       - ws-bun-cache:/home/mario/.bun/install/cache
     depends_on:
@@ -98,8 +98,8 @@ services:
       CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET is required}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET is required}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@support.ajedrezlapaz.com}
+      LICHESS_CLIENT_ID: ${LICHESS_CLIENT_ID:-}
+      PUSH_NOTIFICATION_API_KEY: ${PUSH_NOTIFICATION_API_KEY:-}
     ports:
       - "${API_PORT:-4000}:4000"
     volumes:

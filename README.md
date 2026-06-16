@@ -349,12 +349,14 @@ All API runtime configuration is passed through the Docker Compose environment b
 | `CSRF_SECRET` | Yes | — | HMAC key for CSRF token signing |
 | `INTERNAL_API_SECRET` | Yes | — | Shared secret for internal API communication (via X-Internal-Secret header) |
 | `REDIS_URL` | No | `redis://redis:6379` | Redis connection for rate limiting and tokens inside Compose |
-| `RESEND_API_KEY` | Production only | — | Resend API key for email delivery (fails fast if missing in prod) |
-| `EMAIL_FROM` | No | `noreply@support.ajedrezlapaz.com` | Sender address for verification and reset emails |
+| `LICHESS_CLIENT_ID` | Yes | — | Lichess OAuth client ID for chess tournament integration |
+| `PUSH_NOTIFICATION_API_KEY` | Yes | — | Push notification API key for mobile alerts |
 | `FRONTEND_URL` | Yes | — | Allowed CORS origin (comma-separated) |
 | `NODE_ENV` | No | `development` | Controls cookie Secure flag and session cookie name |
 
-In development, `RESEND_API_KEY` defaults to empty (emails are not sent but the API does not crash). In production (`docker-compose.prod.yml`), it uses `${RESEND_API_KEY:?}` and fails fast when the key is not set.
+In development, `LICHESS_CLIENT_ID` defaults to empty (Lichess integration is skipped but the API does not crash). In production (`docker-compose.prod.yml`), it uses `${LICHESS_CLIENT_ID:?}` and fails fast when the client ID is not set.
+
+In development, `PUSH_NOTIFICATION_API_KEY` defaults to empty (push notifications are not sent but the API does not crash). In production (`docker-compose.prod.yml`), it uses `${PUSH_NOTIFICATION_API_KEY:?}` and fails fast when the key is not set.
 
 Run the integrated app stack:
 

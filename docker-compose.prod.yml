@@ -46,8 +46,8 @@ services:
       CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET is required}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET is required}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required in production}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@support.ajedrezlapaz.com}
+      LICHESS_CLIENT_ID: ${LICHESS_CLIENT_ID:?LICHESS_CLIENT_ID is required in production}
+      PUSH_NOTIFICATION_API_KEY: ${PUSH_NOTIFICATION_API_KEY:?PUSH_NOTIFICATION_API_KEY is required in production}
     ports:
       - "${PROD_API_PORT:-8081}:8081"
     volumes:
